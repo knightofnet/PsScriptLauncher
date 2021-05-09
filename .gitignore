@@ -1,0 +1,8 @@
+/PsScriptLauncher/bin
+/PsScriptLauncher/packages
+/PsScriptLauncher/obj
+
+.vs
+/PsScriptLauncher_noWin/bin
+/PsScriptLauncher_noWin/obj
+/PsScriptLauncher_noWin/packages
