@@ -43,19 +43,13 @@ namespace PsScriptLauncher
             CTRL_LOGOFF_EVENT = 5,
             CTRL_SHUTDOWN_EVENT = 6
         }
-    #endregion
+        #endregion
 
         static void Main(string[] args)
         {
             Program inst = new Program();
 
-            
-            
-        
-
             inst.Run(args);
-
-
 
         }
 
@@ -93,6 +87,9 @@ namespace PsScriptLauncher
                     case EnumModeLancement.NewScriptInit:
                         InitNewScript(listScript);
                         break;
+                    case EnumModeLancement.InteractiveLaunch:
+                        RunScriptInteractive(listScript);
+                        break;
                 }
             }
             catch (Exception e)
@@ -107,12 +104,13 @@ namespace PsScriptLauncher
 
             Environment.ExitCode = (int)appExitCode;
         }
-        
+
+
 
         private void InitNewScript(List<ScriptDto> listScript)
         {
             String newId = StringUtils.RandomString(16);
-            
+
             XmlFile xmlF = appArgs.XmlFile;
 
             XmlAttribute idAttribute = xmlF.Doc.CreateAttribute("id");
@@ -139,7 +137,7 @@ namespace PsScriptLauncher
             xmlF.Root.AppendChild(scriptComment);
             xmlF.Save();
 
-          
+
 
             FileUtils.ShowFileInWindowsExplorer(xmlF.FileXmlPath);
         }
@@ -193,8 +191,6 @@ namespace PsScriptLauncher
                     return;
                 }
 
-                ;
-
                 ScriptDto scriptDto = listScript.FirstOrDefault(r => r.Id.Equals(appArgs.ScriptId));
                 log.Info("Script à lancer (id: {0}, script: {1})", scriptDto.Id, scriptDto.Path);
 
@@ -215,6 +211,181 @@ namespace PsScriptLauncher
 
         }
 
+        private void RunScriptInteractive(List<ScriptDto> listScript)
+        {
 
+            while (true)
+            {
+                int nbEltParLigne = 3;
+                StringBuilder strShow = new StringBuilder();
+
+                String tpl = "[{0:" + new String(' ', 2) + "}] {1,-25}";
+                tpl = "[{0}] {1,-25}";
+
+                int i = 0;
+                for (; i < listScript.Count; i++)
+                {
+                    ScriptDto scriptDto = listScript[i];
+
+                    strShow.AppendFormat(tpl, i, scriptDto.Id);
+
+                    if ((i + 1) % nbEltParLigne == 0)
+                    {
+                        strShow.AppendLine();
+                    }
+                }
+
+
+                strShow.AppendFormat(tpl, i, "Quitter");
+
+
+
+                Console.WriteLine(strShow.ToString());
+                Console.WriteLine();
+                Console.Write("Faites votre choix : ");
+                String choiceStr = Console.ReadLine();
+
+                int choice = -1;
+                if ((choice = MiscAppUtils.IntParse(choiceStr)) >= 0)
+                {
+                    if (choice == i)
+                    {
+                        break;
+                    }
+
+                    if (RunScriptInteractiveSub(listScript[choice]))
+                    {
+                        return;
+                    }
+                    Console.Clear();
+                }
+
+
+            }
+        }
+
+
+
+        private bool RunScriptInteractiveSub(ScriptDto scriptDto)
+        {
+            Console.WriteLine();
+
+        
+
+            bool isDoReturn = SubA();
+            return isDoReturn;
+
+            bool SubA()
+            {
+                while (true)
+                {
+                    String msgPresentScript = $"Script {scriptDto.Id} :";
+                    Console.WriteLine(new String('=', msgPresentScript.Length + 2));
+                    Console.WriteLine($" {msgPresentScript}");
+                    Console.WriteLine(new String('=', msgPresentScript.Length + 2));
+
+                    Console.WriteLine("[0] Lancer le script");
+                    Console.WriteLine("[1] Revenir en arrière");
+
+                    Console.WriteLine();
+                    Console.Write("Faites votre choix : ");
+                    String choiceStr = Console.ReadLine();
+
+                    int choice = -1;
+                    if ((choice = MiscAppUtils.IntParse(choiceStr)) >= 0)
+                    {
+                        if (choice == 1)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            if (SubB())
+                            {
+                                return true;
+                            }
+                            Console.Clear();
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            bool SubB()
+            {
+               
+                while (true)
+                {
+                    Console.WriteLine();
+
+                    string argScript = ScriptRunner.GetScriptArgsTpl(scriptDto);
+                    int nbArgsScript = ScriptRunner.ExtractNbArgs(argScript);
+
+                    if (nbArgsScript == 0)
+                    {
+                        Console.WriteLine("Aucun argument à fournir pour ce script");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Paramètres de lancement :");
+                        Console.WriteLine(argScript);
+                        Console.WriteLine();
+
+                        List<String> listArgs = new List<string>(nbArgsScript);
+                        
+                        for (int i = 0; i < nbArgsScript; i++)
+                        {
+                            Console.Write("Valorisez %1: ");
+                            listArgs.Insert(i, Console.ReadLine());
+                        }
+                        listArgs.Insert(0, String.Join(" ", listArgs));
+
+                        Console.WriteLine();
+                        string argScriptRepl = ScriptRunner.ReplaceArgsInTpl(argScript, listArgs);
+                        Console.WriteLine("Le script sera lancé avec ces paramètres :");
+                        Console.WriteLine(argScriptRepl);
+                        Console.WriteLine();
+
+                        Console.WriteLine();
+                        Console.Write("Voulez-vous continuer ? [o/n/a] : ");
+                        String choiceStr = Console.ReadLine();
+
+                        if (choiceStr == null || choiceStr.Equals("n", StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            continue;
+
+                        } else if (choiceStr.Equals("a", StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return false;
+                        }
+
+
+                        appArgs.ScriptArgsInput = listArgs;
+
+                    }
+
+                    try
+                    {
+
+                        ScriptRunner sRun = new ScriptRunner(scriptDto);
+                        _handler += new EventHandler(sRun.HandleUnusalExit);
+                        SetConsoleCtrlHandler(_handler, true);
+                        sRun.Run(appArgs.ScriptArgsInput);
+                    }
+                    catch (Exception e)
+                    {
+                        Thread.Sleep(5000);
+                        return false;
+                    }
+
+                    break;
+                }
+
+                return true;
+            }
+
+           
+        }
     }
 }

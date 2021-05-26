@@ -81,6 +81,16 @@ namespace PsScriptLauncher.business
 
         };
 
+        private static readonly Option _interactiveLaunch = new Option()
+        {
+            ShortOpt = "c",
+            LongOpt = "interactifLaunch",
+            Description = "Permet le lancement de script par un menu",
+            HasArgs = false,
+            IsMandatory = false,
+            Name = "interactiveLaunch"
+
+        };
 
 
         public AppArgParser()
@@ -90,6 +100,7 @@ namespace PsScriptLauncher.business
             AddOption(_initNewScriptXml);
             AddOption(_sArgs);
             AddOption(_xmlScriptFile);
+            AddOption(_interactiveLaunch);
             AddOption(_haltOnError);
 
 
@@ -119,15 +130,17 @@ namespace PsScriptLauncher.business
             {
                 appArgs.Mode = EnumModeLancement.NewScriptInit;
             }
+            else if (HasOption(_interactiveLaunch, arg))
+            {
+                appArgs.Mode = EnumModeLancement.InteractiveLaunch;
+            }
 
             if (appArgs.Mode == EnumModeLancement.RunScript)
             {
-
                 if (HasOption(_sArgs, arg))
                 {
                     appArgs.ScriptArgsInput = _sArgs.Value;
                 }
-
             }
 
             appArgs.HaltOnError = HasOption(_haltOnError, arg);
@@ -153,8 +166,7 @@ namespace PsScriptLauncher.business
                 }
                 else
                 {
-                    throw new CliParsingException(String.Format("Le fichier {0} n'existe pas ou n'est pas accessible.",
-                        filepath));
+                    throw new CliParsingException($"Le fichier {filepath} n'existe pas ou n'est pas accessible.");
                 }
             }
 
@@ -166,7 +178,7 @@ namespace PsScriptLauncher.business
             catch (XmlException e)
             {
                 log.Error("Erreur lors de lecture du fichier xml {0} - {1}", filepath, e.Message);
-                throw new CliParsingException(String.Format("Erreur lors de lecture du fichier xml {0} - {1}", filepath, e.Message), e);
+                throw new CliParsingException($"Erreur lors de lecture du fichier xml {filepath} - {e.Message}", e);
             }
 
             return appArgs;

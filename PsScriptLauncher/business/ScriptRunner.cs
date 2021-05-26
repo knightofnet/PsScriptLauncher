@@ -47,15 +47,7 @@ namespace PsScriptLauncher.business
 
 
 
-            int scriptArgsSubsPresent = 0;
-            for (int i = 0; i < 100; i++)
-            {
-                string strI = "%" + i;
-                if (scriptArgTpl.Contains(strI))
-                {
-                    scriptArgsSubsPresent++;
-                }
-            }
+            int scriptArgsSubsPresent = ExtractNbArgs(scriptArgTpl);
 
             if (scriptArgListCount < scriptArgsSubsPresent)
             {
@@ -68,24 +60,7 @@ namespace PsScriptLauncher.business
             String scriptArgLine = null;
             if (scriptArgListCount > 0)
             {
-
-                int scriptArgLineNbSubsDone = 0;
-                scriptArgLine = scriptArgTpl;
-                for (var index = 0; index < scriptArgList.Count; index++)
-                {
-                    string a = scriptArgList[index];
-
-                    string strIndex = "%" + index;
-
-                    if (scriptArgLine.Contains(strIndex))
-                    {
-                        scriptArgLine = scriptArgLine.Replace(strIndex, a);
-                        log.Debug("{0} => {1}", strIndex, a);
-                        scriptArgLineNbSubsDone++;
-                    }
-                }
-
-
+                scriptArgLine = ReplaceArgsInTpl(scriptArgTpl, scriptArgList);
             }
             else
             {
@@ -97,6 +72,9 @@ namespace PsScriptLauncher.business
 
             return EnumExitCode.Ok;
         }
+
+       
+
 
         private bool IsOutputYes(EnumTypeOutput o)
         {
@@ -220,20 +198,7 @@ namespace PsScriptLauncher.business
         }
 
 
-        private static string GetScriptArgsTpl(ScriptDto scriptDto)
-        {
-            StringBuilder str = new StringBuilder("-ExecutionPolicy RemoteSigned ");
-            PowershellParams p = scriptDto.PowershellParams;
-
-            str.AppendFormat("{0}", p.NoProfile ? "-NoProfile " : "");
-            str.AppendFormat("{0}", p.NoExit ? "-NoExit " : "");
-            str.AppendFormat("{0}", p.NoLogo ? "-NoLogo " : "");
-            str.AppendFormat("{0}", p.WindowStyle != null ? "-WindowStyle " + p.WindowStyle + " " : "");
-
-            str.AppendFormat("-File \"{0}\" {1}", scriptDto.Path, scriptDto.Args);
-
-            return str.ToString();
-        }
+      
 
         public bool HandleUnusalExit(Program.CtrlType sig)
         {
@@ -254,6 +219,60 @@ namespace PsScriptLauncher.business
             }
 
             return true;
+        }
+
+
+
+
+        public static string GetScriptArgsTpl(ScriptDto scriptDto)
+        {
+            StringBuilder str = new StringBuilder("-ExecutionPolicy RemoteSigned ");
+            PowershellParams p = scriptDto.PowershellParams;
+
+            str.AppendFormat("{0}", p.NoProfile ? "-NoProfile " : "");
+            str.AppendFormat("{0}", p.NoExit ? "-NoExit " : "");
+            str.AppendFormat("{0}", p.NoLogo ? "-NoLogo " : "");
+            str.AppendFormat("{0}", p.WindowStyle != null ? "-WindowStyle " + p.WindowStyle + " " : "");
+
+            str.AppendFormat("-File \"{0}\" {1}", scriptDto.Path, scriptDto.Args);
+
+            return str.ToString();
+        }
+
+        public static int ExtractNbArgs(string scriptArgTpl)
+        {
+            int scriptArgsSubsPresent = 0;
+            for (int i = 0; i < 100; i++)
+            {
+                string strI = "%" + i;
+                if (scriptArgTpl.Contains(strI))
+                {
+                    scriptArgsSubsPresent++;
+                }
+            }
+
+            return scriptArgsSubsPresent;
+        }
+
+        public static string ReplaceArgsInTpl(string argTpl, List<string> argsList)
+        {
+            int scriptArgLineNbSubsDone = 0;
+            var scriptArgLine = argTpl;
+            for (var index = 0; index < argsList.Count; index++)
+            {
+                string a = argsList[index];
+
+                string strIndex = "%" + index;
+
+                if (scriptArgLine.Contains(strIndex))
+                {
+                    scriptArgLine = scriptArgLine.Replace(strIndex, a);
+                    log.Debug("{0} => {1}", strIndex, a);
+                    scriptArgLineNbSubsDone++;
+                }
+            }
+
+            return scriptArgLine;
         }
     }
 }

@@ -12,5 +12,6 @@ namespace PsScriptLauncher.constant
         RunScript = 1,
         ListScript = 2,
         NewScriptInit = 3,
+        InteractiveLaunch = 4,
     }
 }
